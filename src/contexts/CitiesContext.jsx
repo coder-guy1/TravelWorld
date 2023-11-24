@@ -6,7 +6,8 @@ import {
   useCallback,
 } from "react";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://localhost:9000";
+
 const CitiesContext = createContext();
 
 const initialState = {
@@ -20,8 +21,17 @@ function reducer(state, action) {
   switch (action.type) {
     case "loading":
       return { ...state, isLoading: true };
+
     case "cities/loaded":
-      return { ...state, cities: action.payload };
+      return {
+        ...state,
+        isLoading: false,
+        cities: action.payload,
+      };
+
+    case "city/loaded":
+      return { ...state, isLoading: false, currentCity: action.payload };
+
     case "city/created":
       return {
         ...state,
@@ -29,13 +39,24 @@ function reducer(state, action) {
         cities: [...state.cities, action.payload],
         currentCity: action.payload,
       };
+
     case "city/deleted":
       return {
         ...state,
         isLoading: false,
+        cities: state.cities.filter((city) => city.id !== action.payload),
         currentCity: {},
-        cities: state.cities.filter((city) => city.id != action.payload),
       };
+
+    case "rejected":
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload,
+      };
+
+    default:
+      throw new Error("Unknown action type");
   }
 }
 
@@ -44,6 +65,7 @@ function CitiesProvider({ children }) {
     reducer,
     initialState
   );
+
   useEffect(function () {
     async function fetchCities() {
       dispatch({ type: "loading" });
@@ -61,6 +83,7 @@ function CitiesProvider({ children }) {
     }
     fetchCities();
   }, []);
+
   const getCity = useCallback(
     async function getCity(id) {
       if (Number(id) === currentCity.id) return;
@@ -119,6 +142,7 @@ function CitiesProvider({ children }) {
       });
     }
   }
+
   return (
     <CitiesContext.Provider
       value={{
@@ -135,6 +159,7 @@ function CitiesProvider({ children }) {
     </CitiesContext.Provider>
   );
 }
+
 function useCities() {
   const context = useContext(CitiesContext);
   if (context === undefined)
